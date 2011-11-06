@@ -15,12 +15,12 @@ version of the file that is maintined in ~/.gsd/myhosts.
 ## Enable Filter
 To enable the filter, simply run
 
-    sudo gsd filter
+    sudo gsd enable
 
 ## Disbale Filter
 To disable the filter, run
 
-    sudo gsd filter
+    sudo gsd disable
 
 ## Check the Filter's status
 To check whether the filter is active and to see the which sites are
