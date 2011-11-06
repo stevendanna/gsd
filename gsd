@@ -15,8 +15,13 @@ SYS_HOST="/etc/hosts"
 BACKUP="$GSD_DIR/etc-host"
 GSD_TOKEN="###GSD-FILTERS###"
 
+if [ ! -d "$GSD_DIR" ]; then
+    echo "$GSD_DIR not found.  Initializing."
+    mkdir "$GSD_DIR"
+fi
+
 if [ ! -f "$GSD_HOST" ]; then
-    echo "No $GSD_HOST file found. Initializing personalized host file."
+    echo "$GSD_HOST not found. Initializing personalized host file."
     cp $SYS_HOST $GSD_HOST
     echo $GSD_TOKEN >> $GSD_HOST
 fi
