@@ -1,0 +1,105 @@
+#!/bin/bash
+
+## Since we are running this as root
+## Lets set -e to avoid disasters
+set -e
+
+### Configuration
+if [ 0 -eq "$(id -u)" ]; then
+    GSD_DIR="/home/$SUDO_USER/.gsd"
+else
+    GSD_DIR="$HOME/.gsd"
+fi
+GSD_HOST="$GSD_DIR/myhosts"
+SYS_HOST="/etc/hosts"
+BACKUP="$GSD_DIR/etc-host"
+GSD_TOKEN="###GSD-FILTERS###"
+
+if [ ! -f "$GSD_HOST" ]; then
+    echo "No $GSD_HOST file found. Initializing personalized host file."
+    cp $SYS_HOST $GSD_HOST
+    echo $GSD_TOKEN >> $GSD_HOST
+fi
+
+enable_filter () {
+    if [ 0 -ne "$(id -u)" ]; then
+        echo "Must be run as root to enable filter."
+        exit 1
+    fi
+    [ ! -f "$GSD_DIR/enabled" ] || exit 0
+    cp $SYS_HOST $BACKUP
+    cp $GSD_HOST $SYS_HOST
+    touch "$GSD_DIR/enabled"
+    echo "GSD filter enabled."
+}
+
+disable_filter () {
+    if [ 0 -ne "$(id -u)" ]; then
+        echo "Must be run as root to disable filter."
+        exit 1
+    fi
+    [ -e "$GSD_DIR/enabled" ] || exit 0
+    cp $BACKUP $SYS_HOST
+    rm "$GSD_DIR/enabled"
+    echo "GSD filter disabled."
+}
+
+get_start_line () {
+    local start
+    start=$(grep -n "$GSD_TOKEN" $GSD_HOST | head -1 | cut -f1 -d:)
+    echo $(($start + 1))
+}
+
+case "$1" in
+    enable)
+        enable_filter
+        ;;
+    disable)
+        disable_filter
+        ;;
+    add)
+        ## I should probably add some checking to ensure I don't
+        ## get duplicates.  Oh well.  Just be careful
+        [ -n $2 ] || exit 1;
+        echo -ne "127.0.0.1\t$2" >> "$GSD_HOST"
+        if [ "www" != $(expr substr $2 1 3) ]; then
+            echo -ne " www.$2" >> "$GSD_HOST"
+        fi
+        printf '\n' >> "$GSD_HOST"
+        echo "Added $2 to filter.  Use 'gsd reload' if you want the filter to take effect."
+        ;;
+    del)
+        #Remove entry based on number in status output
+        case $2 in
+            ''|*[!0-9]*)
+                echo "Argument must be numeric."
+                exit 1;
+                ;;
+            *)
+                start=$(get_start_line)
+                rm_line=$(($start + $2 - 1))
+                temp=$(mktemp -p $GSD_DIR)
+                sed ${rm_line}d "$GSD_HOST" > "$temp"
+                mv "$temp" "$GSD_HOST"
+                echo "Removed entry $2 from filter.  Use 'gsd reload' if you want the change to take effect."
+                ;;
+        esac
+        ;;
+    status)
+        if [ -f "$GSD_DIR/enabled" ]; then
+            echo "GSD Filter Enabled"
+        else
+            echo "GSD Filter Disabled"
+        fi
+        start=$(get_start_line)
+        echo "Filtered Sites:"
+        tail -n +$start "$GSD_HOST" | cut -f2 | nl
+        ;;
+    reload)
+        disable_filter
+        enable_filter
+        ;;
+    *)
+        echo "Usage: gsd [enable | disable | reload | add  <site-name> | del <entry num> | status]"
+        exit 1
+esac
