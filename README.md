@@ -43,5 +43,8 @@ To remove a site from your gsd filter, run
 
 where ENTRY_NUM is the number of the entry displayed in `gsd status`.
 
+## Reload the filter
+To reload the filter after modifying the list of filtered sites, run
 
+    sudo gsd relaod
 
