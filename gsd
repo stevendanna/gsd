@@ -22,12 +22,25 @@
 ## Lets set -e to avoid disasters
 set -e
 
+is_os_x() {
+    [ -x /usr/bin/sw_vers ]
+}
+
+if is_os_x; then
+  HOME_PATH=/Users
+  EXPR=gexpr
+else
+  HOME_PATH=/home
+  EXPR=expr
+fi
+
 ### Configuration
 if [ 0 -eq "$(id -u)" ]; then
-    GSD_DIR="/home/$SUDO_USER/.gsd"
+    GSD_DIR="$HOME_PATH/$SUDO_USER/.gsd"
 else
     GSD_DIR="$HOME/.gsd"
 fi
+
 GSD_HOST="$GSD_DIR/myhosts"
 SYS_HOST="/etc/hosts"
 BACKUP="$GSD_DIR/etc-host"
@@ -85,7 +98,7 @@ case "$1" in
         ## get duplicates.  Oh well.  Just be careful
         [ -n $2 ] || exit 1;
         echo -ne "127.0.0.1\t$2" >> "$GSD_HOST"
-        if [ "www" != $(expr substr $2 1 3) ]; then
+        if [ "www" != $($EXPR substr $2 1 3) ]; then
             echo -ne " www.$2" >> "$GSD_HOST"
         fi
         printf '\n' >> "$GSD_HOST"
